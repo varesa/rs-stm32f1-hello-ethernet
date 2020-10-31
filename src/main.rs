@@ -4,14 +4,6 @@
 #![no_main]             //  Don't use the Rust standard bootstrap. We will provide our own.
 #![no_std]              //  Don't use the Rust standard library. We are building a binary that can run on its own.
 
-extern crate cortex_m;              //  Low-level functions for ARM Cortex-M3 processor
-extern crate cortex_m_rt as rt;     //  Startup and runtime functions for ARM Cortex-M3.
-extern crate cortex_m_semihosting;  //  Debug console functions for ARM Cortex-M3.
-extern crate panic_semihosting;     //  Panic reporting functions, which transmit to the debug console.
-
-extern crate embedded_hal;
-extern crate stm32f1xx_hal;
-
 use cortex_m_rt::{entry, exception, ExceptionFrame};    //  Stack frame for exception handling.
 use cortex_m_semihosting::hprintln;                     //  For displaying messages on the debug console.
 
