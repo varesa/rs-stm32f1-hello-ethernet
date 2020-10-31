@@ -4,8 +4,10 @@
 #![no_main]             //  Don't use the Rust standard bootstrap. We will provide our own.
 #![no_std]              //  Don't use the Rust standard library. We are building a binary that can run on its own.
 
+
 use cortex_m_rt::{entry, exception, ExceptionFrame};    //  Stack frame for exception handling.
 use cortex_m_semihosting::hprintln;                     //  For displaying messages on the debug console.
+use panic_semihosting as _;
 
 use embedded_hal::digital::v2::OutputPin;
 use stm32f1xx_hal::{delay::Delay, pac, prelude::*};
