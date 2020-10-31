@@ -245,6 +245,7 @@ dependencies = [
  "cortex-m-rt",
  "cortex-m-semihosting",
  "embedded-hal",
+ "nb 1.0.0",
  "panic-semihosting",
  "stm32f1 0.12.1",
  "stm32f1xx-hal",
