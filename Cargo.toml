@@ -11,7 +11,13 @@ cortex-m-semihosting = "0.3.5"
 panic-semihosting = "0.5.4"
 
 nb = "1.0.0"
+heapless = "0.5.6"
 embedded-hal = "0.2.4"
+
+#enc28j60 = "0.2.1"
+[dependencies.enc28j60]
+git = "https://github.com/chernomor/enc28j60"
+rev = "7643e5739535eef005a09cd9ff05c1b9100cf741"
 
 [dependencies.stm32f1]
 version = "0.12.1"
@@ -20,3 +26,7 @@ features = ["stm32f103", "rt"]
 [dependencies.stm32f1xx-hal]
 version = "0.7.0"
 features = ["rt", "stm32f103", "medium"]
+
+[dependencies.jnet]
+git = "https://github.com/japaric/jnet"
+rev = "df96b408049ca952ad7844d6552e87cf8fc18d2a"
