@@ -11,9 +11,9 @@ use panic_semihosting as _;
 
 use embedded_hal::digital::v2::OutputPin;
 use stm32f1xx_hal::{delay::Delay, pac, prelude::*, spi::Spi};
-use enc28j60::Enc28j60;
+use enc28j60::{Enc28j60};
 use heapless::consts::*;
-use heapless::FnvIndexMap;
+use heapless::{FnvIndexMap, ArrayLength, Bucket, PowerOfTwo};
 use jnet::{arp, ether, icmp, ipv4, mac, udp, Buffer};
 
 /* Configuration */
@@ -104,49 +104,7 @@ fn main() -> ! {
 
             match eth.get_type() {
                 ether::Type::Arp => {
-                    if let Ok(arp) = arp::Packet::parse(eth.payload_mut()) {
-                        match arp.downcast() {
-                            Ok(mut arp) => {
-                                iprintln!(_stim, "** {:?}", arp);
-
-                                if !arp.is_a_probe() {
-                                    cache.insert(arp.get_spa(), arp.get_sha()).ok();
-                                }
-
-                                // are they asking for us?
-                                if arp.get_oper() == arp::Operation::Request && arp.get_tpa() == IP
-                                {
-                                    // reply to the ARP request
-                                    let tha = arp.get_sha();
-                                    let tpa = arp.get_spa();
-
-                                    arp.set_oper(arp::Operation::Reply);
-                                    arp.set_sha(MAC);
-                                    arp.set_spa(IP);
-                                    arp.set_tha(tha);
-                                    arp.set_tpa(tpa);
-                                    iprintln!(_stim, "\n** {:?}", arp);
-                                    let arp_len = arp.len();
-
-                                    // update the Ethernet header
-                                    eth.set_destination(tha);
-                                    eth.set_source(MAC);
-                                    eth.truncate(arp_len);
-                                    iprintln!(_stim, "* {:?}", eth);
-
-                                    iprintln!(_stim, "Tx({})", eth.as_bytes().len());
-                                    enc28j60.transmit(eth.as_bytes()).ok().unwrap();
-                                }
-                            }
-                            Err(_arp) => {
-                                // Not a Ethernet/IPv4 ARP packet
-                                iprintln!(_stim, "** {:?}", _arp);
-                            }
-                        }
-                    } else {
-                        // malformed ARP packet
-                        iprintln!(_stim, "Err(A)");
-                    }
+                    handle_arp(_stim, &mut enc28j60, &mut eth, &mut cache)
                 }
                 ether::Type::Ipv4 => {
                     if let Ok(mut ip) = ipv4::Packet::parse(eth.payload_mut()) {
@@ -247,6 +205,66 @@ fn main() -> ! {
             // malformed Ethernet frame
             iprintln!(_stim, "Err(E)");
         }
+    }
+}
+
+fn handle_arp(
+    _stim: &mut cortex_m::peripheral::itm::Stim,
+    enc28j60: &mut Enc28j60<
+        impl embedded_hal::blocking::spi::Transfer<u8, Error = stm32f1xx_hal::spi::Error> + embedded_hal::blocking::spi::Write<u8, Error = stm32f1xx_hal::spi::Error>,
+        impl embedded_hal::digital::v2::OutputPin,
+        impl enc28j60::IntPin,
+        impl enc28j60::ResetPin,
+    >,
+    eth: &mut jnet::ether::Frame<Buffer<&mut [u8; 1024]>>,
+    arp_cache: &mut FnvIndexMap<
+        jnet::ipv4::Addr,
+        jnet::mac::Addr,
+        impl ArrayLength<Bucket<jnet::ipv4::Addr, jnet::mac::Addr>> + ArrayLength<Option<heapless::Pos>> + PowerOfTwo,
+    >,
+) {
+    if let Ok(arp) = arp::Packet::parse(eth.payload_mut()) {
+        match arp.downcast() {
+            Ok(mut arp) => {
+                iprintln!(_stim, "** {:?}", arp);
+
+                if !arp.is_a_probe() {
+                    arp_cache.insert(arp.get_spa(), arp.get_sha()).ok();
+                }
+
+                // are they asking for us?
+                if arp.get_oper() == arp::Operation::Request && arp.get_tpa() == IP
+                {
+                    // reply to the ARP request
+                    let tha = arp.get_sha();
+                    let tpa = arp.get_spa();
+
+                    arp.set_oper(arp::Operation::Reply);
+                    arp.set_sha(MAC);
+                    arp.set_spa(IP);
+                    arp.set_tha(tha);
+                    arp.set_tpa(tpa);
+                    iprintln!(_stim, "\n** {:?}", arp);
+                    let arp_len = arp.len();
+
+                    // update the Ethernet header
+                    eth.set_destination(tha);
+                    eth.set_source(MAC);
+                    eth.truncate(arp_len);
+                    iprintln!(_stim, "* {:?}", eth);
+
+                    iprintln!(_stim, "Tx({})", eth.as_bytes().len());
+                    enc28j60.transmit(eth.as_bytes()).ok().unwrap();
+                }
+            }
+            Err(_arp) => {
+                // Not a Ethernet/IPv4 ARP packet
+                iprintln!(_stim, "** {:?}", _arp);
+            }
+        }
+    } else {
+        // malformed ARP packet
+        iprintln!(_stim, "Err(A)");
     }
 }
 
