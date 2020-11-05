@@ -6,6 +6,8 @@ end
 
 # Connect to OpenOCD
 target extended-remote :3333
+# Connect to J-Link
+#target extended-remote :2331
 
 # print demangled symbols
 set print asm-demangle on
@@ -19,16 +21,21 @@ break HardFault
 break rust_begin_unwind
 
 # Enable console functionality
+
+# J-Link
+#monitor semihosting enable
+# OpenOCD
 monitor arm semihosting enable
+
 monitor tpiu config internal itm.fifo uart off 8000000
 monitor itm port 0 on
 
 load
 
-#break main
+break main
 
 continue
+clear main
 
-#clear main
 
 #step
